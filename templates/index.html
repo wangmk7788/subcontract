@@ -1,1 +1,572 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>하도급 계약 승인신청서 자동 생성기</title>
+  <style>
+    :root {
+      --navy: #1B365D;
+      --navy-light: #2B4C7E;
+      --accent: #2563EB;
+      --accent-hover: #1D4ED8;
+      --bg: #F4F6F9;
+      --card: #FFFFFF;
+      --border: #DCE2EC;
+      --text: #1E293B;
+      --muted: #64748B;
+      --success: #0F766E;
+      --warn-bg: #FEF3C7;
+      --warn-text: #92400E;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      background: linear-gradient(135deg, var(--navy), var(--navy-light));
+      color: #fff;
+      padding: 24px 32px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+    header h1 { margin: 0 0 6px; font-size: 22px; font-weight: 700; }
+    header p { margin: 0; font-size: 13.5px; opacity: 0.9; }
+    .container {
+      max-width: 1240px;
+      margin: 24px auto 60px;
+      padding: 0 20px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+    }
+    .card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 0 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+    .step-badge {
+      display: inline-block;
+      background: var(--navy);
+      color: #fff;
+      font-size: 12px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .upload-zone {
+      border: 2px dashed #94A3B8;
+      border-radius: 10px;
+      padding: 32px 20px;
+      text-align: center;
+      background: #F8FAFC;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent);
+      background: #EFF6FF;
+    }
+    .upload-zone input { display: none; }
+    .upload-icon { font-size: 32px; margin-bottom: 8px; }
+    .upload-hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
+    .status-msg {
+      margin-top: 12px;
+      font-size: 13.5px;
+      font-weight: 600;
+    }
+    .status-msg.ok { color: var(--success); }
+    .status-msg.err { color: #DC2626; }
 
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .kpi {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .kpi-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .kpi-val { font-size: 19px; font-weight: 700; color: var(--navy); }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+    }
+    .field label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 4px;
+    }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      font-size: 13.5px;
+      font-family: inherit;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: none;
+      border-radius: 7px;
+      padding: 9px 15px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-navy { background: var(--navy); color: #fff; }
+    .btn-navy:hover { background: var(--navy-light); }
+    .btn-sm { padding: 6px 11px; font-size: 12.5px; }
+
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 9px 8px;
+      vertical-align: top;
+    }
+    th {
+      background: #F1F5F9;
+      color: var(--navy);
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+    }
+    td input, td textarea {
+      width: 100%;
+      border: 1px solid #CBD5E1;
+      border-radius: 5px;
+      padding: 5px 7px;
+      font-size: 12.5px;
+      font-family: inherit;
+    }
+    td textarea { min-height: 64px; resize: vertical; }
+    .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .center { text-align: center; }
+    .badge-ratio {
+      display: inline-block;
+      background: #EFF6FF;
+      color: #1D4ED8;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+    .hidden { display: none; }
+    .basis-toggle {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-size: 13px;
+      background: #F8FAFC;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .basis-toggle label { cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>붙임1. 소프트웨어사업 하도급 계약 승인신청서 자동 생성기</h1>
+    <p>「사업대금 계산식」 엑셀 파일을 업로드하면 하도급 업체별 계약금액·비율(B/A)·투입인력 내역을 자동 반영하여 표준 워드(.docx) 서식을 생성합니다.</p>
+  </header>
+
+  <div class="container">
+    <!-- STEP 1 -->
+    <div class="card">
+      <div class="card-title">
+        <span><span class="step-badge">STEP 1</span>사업대금 계산식 엑셀 파일 업로드</span>
+      </div>
+      <div id="uploadZone" class="upload-zone">
+        <div class="upload-icon">📊</div>
+        <div><strong>여기를 클릭하거나 엑셀(.xlsx) 파일을 드래그하여 업로드하세요</strong></div>
+        <div class="upload-hint">지원 시트: <code>계약금액정보</code>, <code>투입인력 총괄표</code> (예: 사업대금 계산식_예시.xlsx)</div>
+        <input type="file" id="excelFile" accept=".xlsx,.xlsm" />
+      </div>
+      <div id="uploadStatus" class="status-msg"></div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="workspace" class="hidden">
+      <div class="card">
+        <div class="card-title">
+          <span><span class="step-badge">STEP 2</span>사업 기본정보 및 공통 항목 확인·수정</span>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="kpi-label">전체 계약금액</div>
+            <div class="kpi-val" id="kpiTotal">-</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">주사업자 계약금액</div>
+            <div class="kpi-val" id="kpiPrime">-</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">추출된 하도급 업체 수</div>
+            <div class="kpi-val" id="kpiCount">-</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">하도급 총액 (비율 합계)</div>
+            <div class="kpi-val" id="kpiSubTotal">-</div>
+          </div>
+        </div>
+
+        <div class="basis-toggle">
+          <span><strong>계약금액(A) 산정 기준:</strong></span>
+          <label><input type="radio" name="amountBasis" value="total" checked onchange="recalcRatios(true)"> 전체 계약금액 기준</label>
+          <label><input type="radio" name="amountBasis" value="prime" onchange="recalcRatios(true)"> 주사업자(수급인) 계약금액 기준</label>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label>사업명 (계약명)</label>
+            <input type="text" id="projectName" />
+          </div>
+          <div class="field">
+            <label>계약번호</label>
+            <input type="text" id="contractNo" placeholder="예: 2026-00000" />
+          </div>
+          <div class="field">
+            <label>계약금액(A) (원)</label>
+            <input type="number" id="contractAmount" oninput="recalcRatios(false)" />
+          </div>
+          <div class="field">
+            <label>발주기관명 (귀하 앞 문구)</label>
+            <input type="text" id="orderingAgency" value="발주기관장" placeholder="예: 광주광역시교육감" />
+          </div>
+
+          <div class="field">
+            <label>수급인 상호</label>
+            <input type="text" id="primeCompany" placeholder="예: 주식회사 아이티센엔텍" />
+          </div>
+          <div class="field">
+            <label>수급인 대표자</label>
+            <input type="text" id="primeRep" placeholder="예: 홍길동" />
+          </div>
+          <div class="field">
+            <label>수급인 사업자등록번호</label>
+            <input type="text" id="primeBizNo" placeholder="예: 202-81-32975" />
+          </div>
+          <div class="field">
+            <label>신청일</label>
+            <input type="date" id="applyDate" />
+          </div>
+
+          <div class="field">
+            <label>원도급 계약일</label>
+            <input type="date" id="contractDate" />
+          </div>
+          <div class="field">
+            <label>원도급 계약 시작일</label>
+            <input type="date" id="contractStart" />
+          </div>
+          <div class="field">
+            <label>원도급 계약 종료일</label>
+            <input type="date" id="contractEnd" />
+          </div>
+          <div class="field">
+            <label>하도급 계약 예정일</label>
+            <input type="date" id="subPlanDate" />
+          </div>
+
+          <div class="field">
+            <label>하도급 계약 시작일</label>
+            <input type="date" id="subStart" />
+          </div>
+          <div class="field">
+            <label>하도급 계약 종료일</label>
+            <input type="date" id="subEnd" />
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="card">
+        <div class="card-title">
+          <span><span class="step-badge">STEP 3</span>하도급 업체별 승인신청서 생성 (.docx)</span>
+          <button class="btn btn-navy" onclick="downloadAllZip()">📦 선택 업체 전체 일괄 다운로드 (.zip)</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:36px;"><input type="checkbox" id="checkAll" checked onchange="toggleAllChecks(this)"></th>
+                <th style="width:130px;">하수급인 상호</th>
+                <th style="width:110px;">대표자 / 사업자번호</th>
+                <th style="width:125px;">하도급액(B)<br>비율(B/A)</th>
+                <th style="width:200px;">하도급 계약명</th>
+                <th>하도급 내역 및 사유 (자동 생성·수정 가능)</th>
+                <th style="width:115px;">개별 다운로드</th>
+              </tr>
+            </thead>
+            <tbody id="subTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let parsedData = null;
+
+    // 오늘 날짜 기본값 세팅
+    const todayStr = new Date().toISOString().slice(0, 10);
+    document.getElementById("applyDate").value = todayStr;
+
+    const uploadZone = document.getElementById("uploadZone");
+    const fileInput = document.getElementById("excelFile");
+
+    uploadZone.addEventListener("click", () => fileInput.click());
+    uploadZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadZone.classList.add("dragover");
+    });
+    uploadZone.addEventListener("dragleave", () => uploadZone.classList.remove("dragover"));
+    uploadZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove("dragover");
+      if (e.dataTransfer.files.length > 0) {
+        handleUpload(e.dataTransfer.files[0]);
+      }
+    });
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        handleUpload(e.target.files[0]);
+      }
+    });
+
+    function fmtWon(n) {
+      return Number(n || 0).toLocaleString("ko-KR") + "원";
+    }
+
+    async function handleUpload(file) {
+      const status = document.getElementById("uploadStatus");
+      status.className = "status-msg";
+      status.textContent = "⏳ 엑셀 파일을 분석 중입니다...";
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch("/api/parse", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "분석 실패");
+        }
+        parsedData = data;
+        renderWorkspace(data);
+        status.className = "status-msg ok";
+        status.textContent = `✅ 분석 완료: "${file.name}" (하도급 업체 ${data.subcontractors.length}건 추출)`;
+      } catch (err) {
+        status.className = "status-msg err";
+        status.textContent = "❌ " + err.message;
+      }
+    }
+
+    function renderWorkspace(data) {
+      document.getElementById("workspace").classList.remove("hidden");
+      document.getElementById("projectName").value = data.project_name || "";
+      document.getElementById("contractAmount").value = data.total_contract_amount || 0;
+      document.getElementById("kpiTotal").textContent = fmtWon(data.total_contract_amount);
+      document.getElementById("kpiPrime").textContent = fmtWon(data.prime_contract_amount);
+      document.getElementById("kpiCount").textContent = `${data.subcontractors.length}개사`;
+
+      const tbody = document.getElementById("subTableBody");
+      tbody.innerHTML = "";
+
+      data.subcontractors.forEach((sub, idx) => {
+        const tr = document.createElement("tr");
+        tr.dataset.idx = idx;
+        tr.innerHTML = `
+          <td class="center"><input type="checkbox" class="row-check" checked></td>
+          <td>
+            <input type="text" class="sub-company" value="${escapeHtml(sub.name)}" />
+            <div style="font-size:11.5px; color:#64748B; margin-top:4px;">투입: ${sub.headcount}명 / ${sub.total_mm} M/M</div>
+          </td>
+          <td>
+            <input type="text" class="sub-rep" placeholder="대표자" value="${escapeHtml(sub.rep_name)}" style="margin-bottom:5px;" />
+            <input type="text" class="sub-biz" placeholder="사업자번호" value="${escapeHtml(sub.biz_no)}" />
+          </td>
+          <td class="num">
+            <div><strong>${fmtWon(sub.amount)}</strong></div>
+            <div style="margin-top:5px;"><span class="badge-ratio" id="ratio-${idx}">0.00%</span></div>
+          </td>
+          <td>
+            <textarea class="sub-cname">${escapeHtml(sub.sub_contract_name)}</textarea>
+          </td>
+          <td>
+            <textarea class="sub-reason">${escapeHtml(sub.reason)}</textarea>
+          </td>
+          <td class="center">
+            <button class="btn btn-primary btn-sm" onclick="downloadSingle(${idx})">📄 워드(.docx)</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      recalcRatios();
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function recalcRatios(fromBasis = false) {
+      if (!parsedData) return;
+      const basis = document.querySelector('input[name="amountBasis"]:checked').value;
+      const amtInput = document.getElementById("contractAmount");
+      if (fromBasis) {
+        amtInput.value = basis === "total" ? parsedData.total_contract_amount : parsedData.prime_contract_amount;
+      }
+      const baseAmount = Number(amtInput.value) || 0;
+
+      parsedData.subcontractors.forEach((sub, idx) => {
+        const ratio = baseAmount > 0 ? (sub.amount / baseAmount) * 100 : 0;
+        const badge = document.getElementById(`ratio-${idx}`);
+        if (badge) badge.textContent = `${ratio.toFixed(2)}%`;
+      });
+
+      const totalSub = parsedData.subcontractor_total_amount || 0;
+      const totalRatio = baseAmount > 0 ? (totalSub / baseAmount) * 100 : 0;
+      document.getElementById("kpiSubTotal").textContent = `${fmtWon(totalSub)} (${totalRatio.toFixed(2)}%)`;
+    }
+
+    function toggleAllChecks(master) {
+      document.querySelectorAll(".row-check").forEach(cb => cb.checked = master.checked);
+    }
+
+    function collectCommon() {
+      return {
+        approval_type: "하도급",
+        project_name: document.getElementById("projectName").value.trim(),
+        contract_no: document.getElementById("contractNo").value.trim(),
+        contract_amount: Number(document.getElementById("contractAmount").value) || 0,
+        ordering_agency: document.getElementById("orderingAgency").value.trim() || "발주기관장",
+        prime_company: document.getElementById("primeCompany").value.trim(),
+        prime_rep: document.getElementById("primeRep").value.trim(),
+        prime_biz_no: document.getElementById("primeBizNo").value.trim(),
+        apply_date: document.getElementById("applyDate").value,
+        applicant_name: document.getElementById("primeRep").value.trim(),
+        contract_date: document.getElementById("contractDate").value,
+        contract_start: document.getElementById("contractStart").value,
+        contract_end: document.getElementById("contractEnd").value,
+        sub_plan_date: document.getElementById("subPlanDate").value,
+        sub_start: document.getElementById("subStart").value,
+        sub_end: document.getElementById("subEnd").value,
+      };
+    }
+
+    function collectRow(idx) {
+      const tr = document.querySelector(`#subTableBody tr[data-idx="${idx}"]`);
+      const sub = parsedData.subcontractors[idx];
+      return {
+        sub_company: tr.querySelector(".sub-company").value.trim(),
+        sub_rep: tr.querySelector(".sub-rep").value.trim(),
+        sub_biz_no: tr.querySelector(".sub-biz").value.trim(),
+        sub_amount: sub.amount,
+        sub_contract_name: tr.querySelector(".sub-cname").value.trim(),
+        sub_reason: tr.querySelector(".sub-reason").value.trim(),
+      };
+    }
+
+    async function downloadSingle(idx) {
+      const payload = { ...collectCommon(), ...collectRow(idx) };
+      const res = await fetch("/api/generate-single", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert("오류: " + (err.error || "생성 실패"));
+        return;
+      }
+      const blob = await res.blob();
+      triggerDownload(blob, `붙임1.하도급_계약_승인신청서_${payload.sub_company || "업체"}.docx`);
+    }
+
+    async function downloadAllZip() {
+      const rows = document.querySelectorAll("#subTableBody tr");
+      const items = [];
+      rows.forEach(tr => {
+        if (tr.querySelector(".row-check").checked) {
+          items.push(collectRow(Number(tr.dataset.idx)));
+        }
+      });
+      if (items.length === 0) {
+        alert("다운로드할 업체를 1개 이상 선택해 주세요.");
+        return;
+      }
+      const res = await fetch("/api/generate-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ common: collectCommon(), items }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert("오류: " + (err.error || "일괄 생성 실패"));
+        return;
+      }
+      const blob = await res.blob();
+      triggerDownload(blob, "붙임1_하도급계약승인신청서_일괄생성.zip");
+    }
+
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
